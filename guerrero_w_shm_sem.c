@@ -12,11 +12,15 @@
 #include <wchar.h>
 #include <assert.h>
 #include <signal.h>
+#include <limits.h>
 
 #include "constantes.h"
 
+/* macros de utilidad */
 #define SIZEOF_JUGADORES sizeof(jugadores) * JUGADORES_CANT
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define JUGADOR jugadores[JUGADOR_POS]
+#define MOUNSTRO jugadores[MOUNSTRO_POS]
 
 struct jugador {
     char nombre[JUGADOR_NOMBRE_SIZE];
@@ -39,6 +43,37 @@ int lanzar_dado(int caras) {
     return (rand() % caras) + 1;
 }
 
+/* libera la memoria reservada y cierra descriptores de archivos */
+void destruir() {
+    if (critical_section) {
+        sem_post(sem_user);
+        critical_section = false;
+    }
+
+    if (sem_close(sem_user) < 0)
+        perror("sem_close (sem_user)");
+
+    if (sem_close(sem_server) < 0)
+        perror("sem_close (sem_server)");
+
+    if(munmap(jugadores, SIZEOF_JUGADORES))
+        perror("munmap (jugadores)");
+
+    if (close(fd))
+        perror("close (fd)");
+}
+
+
+/*
+ * función llamada en caso de error
+ * muestra el error, devuelve la memoria reservada por el programa y sale con código de error.
+ */
+void err_exit(char *mensaje) {
+    perror(mensaje);
+    destruir();
+    exit(EXIT_FAILURE);
+}
+
 /*
  * llena una barra de longitud barra_max wchar_t (widechar) caracteres en función de la relación entre
  * un valor entero y su máximo, usando los wchar_t ingresaos. valor_max debe ser mayor a cero.
@@ -53,7 +88,10 @@ void llenar_barra(int valor, int valor_max, wchar_t *barra, int barra_max, wchar
 }
 
 void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
-    wchar_t *barra_salud = (wchar_t *) malloc(sizeof(wchar_t) * MENU_BARRA_SALUD_MAX + 1);
+    wchar_t *barra_salud = calloc(MENU_BARRA_SALUD_MAX+1, sizeof(wchar_t));
+    if (!barra_salud)
+        err_exit("malloc (barra_salud)");
+
     llenar_barra(
         jgdor->salud,
         JUGADOR_SALUD_MAX,
@@ -63,7 +101,10 @@ void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
         MENU_BARRA_SALUD_NOK_CHAR
     );
 
-    wchar_t *barra_energia = (wchar_t *) malloc(sizeof(wchar_t) * MENU_BARRA_ENERGIA_MAX + 1);
+    wchar_t *barra_energia = calloc(MENU_BARRA_ENERGIA_MAX+1, sizeof(wchar_t));
+    if (!barra_energia)
+        err_exit("malloc (barra_energía)");
+
     llenar_barra(
             jgdor->energia,
             JUGADOR_ENERGIA_MAX,
@@ -75,7 +116,10 @@ void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
 
     wchar_t *barra_cooldown;
     if (cooldown > 0) {
-        barra_cooldown = (wchar_t *) malloc(sizeof(wchar_t) * MENU_BARRA_COOLDOWN_MAX + 1);
+        barra_cooldown = (wchar_t *) calloc(MENU_BARRA_COOLDOWN_MAX+1, sizeof(wchar_t));
+        if (!barra_cooldown)
+            err_exit("malloc (barra_cooldown)");
+
         llenar_barra(
                 cooldown,
                 JUGADOR_ENERGIA_COOLDOWN,
@@ -103,7 +147,8 @@ void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
 
     free(barra_salud);
     free(barra_energia);
-    if (cooldown > 0) free(barra_cooldown);
+    if (cooldown > 0)
+        free(barra_cooldown);
 }
 
 void print_you_win() {
@@ -121,7 +166,13 @@ void ataque_espada(struct jugador *atacante, struct jugador *enemigo) {
     enemigo->salud -= ataque;
     atacante->ataco = ATAQUE_ESPADA_ATACO;
     assert(strlen(ATAQUE_ESPADA_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-    sprintf(atacante->mensaje, "%s%d", ATAQUE_ESPADA_MENSAJE, ataque);
+    sprintf(
+        atacante->mensaje,
+        ATAQUE_ESPADA_MENSAJE,
+        ATAQUE_ESPADA_DADO,
+        ataque,
+        atacante->salud
+    );
 }
 
 /*
@@ -136,11 +187,25 @@ int ataque_maza(struct jugador *atacante, struct jugador *enemigo) {
         enemigo->salud -= ataque;
         atacante->energia -= ataque;
         assert(strlen(ATAQUE_MAZA_MENSAJE) + ataque <= JUGADOR_MENSAJE_SIZE);
-        sprintf(atacante->mensaje, "%s%d", ATAQUE_MAZA_MENSAJE, ataque);
+        sprintf(
+            atacante->mensaje,
+            ATAQUE_MAZA_MENSAJE,
+            ATAQUE_MAZA_DADO,
+            ataque,
+            atacante->energia,
+            atacante->salud
+        );
     } else {
         atacante->energia = 0;
         assert(strlen(ATAQUE_MAZA_FALLIDO_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-        strcpy(atacante->mensaje,ATAQUE_MAZA_FALLIDO_MENSAJE);
+        sprintf(
+            atacante->mensaje,
+            ATAQUE_MAZA_FALLIDO_MENSAJE,
+            ATAQUE_MAZA_DADO,
+            ataque,
+            atacante->energia,
+            atacante->salud
+        );
     }
 
     if (atacante->energia == 0) {
@@ -162,43 +227,26 @@ void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
         ataque = ATAQUE_FLECHA_PODER;
         enemigo->salud -= ataque;
         assert(strlen(ATAQUE_FLECHA_MENSAJE) + ataque <= JUGADOR_MENSAJE_SIZE);
-        sprintf(atacante->mensaje, "%s%d", ATAQUE_FLECHA_MENSAJE, ataque);
+        sprintf(
+            atacante->mensaje,
+            ATAQUE_FLECHA_MENSAJE,
+            ATAQUE_FLECHA_DADO,
+            flecha,
+            ataque,
+            atacante->salud
+        );
     } else {
         assert(strlen(ATAQUE_FLECHA_FALLIDO_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-        strcpy(atacante->mensaje, ATAQUE_FLECHA_FALLIDO_MENSAJE);
+        sprintf(
+            atacante->mensaje,
+            ATAQUE_FLECHA_FALLIDO_MENSAJE,
+            ATAQUE_FLECHA_DADO,
+            flecha,
+            atacante->salud
+        );
     }
 
     atacante->ataco = ATAQUE_FLECHA_ATACO;
-}
-
-/* libera la memoria reservada y cierra descriptores de archivos */
-void destruir() {
-    if (critical_section) {
-        sem_post(sem_user);
-        critical_section = false;
-    }
-
-    if (sem_close(sem_user) < 0)
-        perror("sem_close (sem_user)");
-
-    if (sem_close(sem_server) < 0)
-        perror("sem_close (sem_server)");
-
-    if(munmap(jugadores, SIZEOF_JUGADORES))
-        perror("munmap (jugadores)");
-
-    if (close(fd))
-        perror("close (fd)");
-}
-
-/*
- * función llamada en caso de error
- * muestra el error, devuelve la memoria reservada por el programa y sale con código de error.
- */
-void errExit(char *mensaje) {
-    perror(mensaje);
-    destruir();
-    exit(EXIT_FAILURE);
 }
 
 void finalizar_con_exito() {
@@ -213,6 +261,25 @@ void handle_finalizar_anormalmente() {
     }
 }
 
+void log_bitacora(char *file_name, char *msg) {
+    FILE *file = fopen(file_name, "a+"); /* abrir el archivo para append */
+    if (!file)
+        err_exit("fopen (log_bitácora)");
+    fprintf(file, msg);
+    if (fclose(file) == EOF)
+        err_exit("fclose (log_bitácora)");
+}
+
+/* devuelve */
+void formatear_mensaje(struct jugador *jgdor, char *mensaje) {
+    sprintf(
+        mensaje,
+        JUGADOR_MENSAJE_FORMATO,
+        jgdor->nombre,
+        jgdor->mensaje
+    );
+}
+
 int main() {
     bool salir;
     int opcion;
@@ -220,10 +287,10 @@ int main() {
 
     /* comprobar que las constantes no sean inválidas */
     assert(JUGADORES_CANT > 1);
-    assert(JUGADOR >= 0);
-    assert(JUGADOR < JUGADORES_CANT);
-    assert(MOUNSTRO >= 0);
-    assert(MOUNSTRO < JUGADORES_CANT);
+    assert(JUGADOR_POS >= 0);
+    assert(JUGADOR_POS < JUGADORES_CANT);
+    assert(MOUNSTRO_POS >= 0);
+    assert(MOUNSTRO_POS < JUGADORES_CANT);
 
     /* inicializar seed para generar números pseudo-aleatorios */
     srand(time(NULL));
@@ -241,7 +308,7 @@ int main() {
     /* agregar al espacio de direccionamiento del programa la memoria compartida */
     fd = shm_open(SHM_FILE, O_EXCL | O_RDWR, 0600);
     if (fd == -1)
-        errExit("shm_open");
+        err_exit("shm_open");
 
     jugadores = (struct  jugador *) mmap(
         NULL,
@@ -253,23 +320,23 @@ int main() {
     );
 
     if (jugadores == MAP_FAILED)
-        errExit("mmap");
+        err_exit("mmap");
 
     /* abrir los semáforos creados por el servidor */
     sem_user = sem_open(SEM_USER_FILE, 0);
     if (sem_user == SEM_FAILED)
-        errExit("sem_open (sem_user)");
+        err_exit("sem_open (sem_user)");
 
     sem_server = sem_open(SEM_SERVER_FILE, 0);
     if (sem_server == SEM_FAILED)
-        errExit("sem_open (sem_server)");
+        err_exit("sem_open (sem_server)");
 
     salir = false;
     critical_section = false; /* entrar en la sección crítica */
     cooldown = -1;
 
     while (!salir) {
-        print_menu(&jugadores[JUGADOR], &jugadores[MOUNSTRO], cooldown);
+        print_menu(&JUGADOR, &MOUNSTRO, cooldown);
         scanf("%i", &opcion);
 
         /* esperar por confirmación del servidor para modificar la memoria compartida */
@@ -277,9 +344,9 @@ int main() {
         critical_section = true;
 
         /* gameover */
-        if(jugadores[JUGADOR].salud <= 0) {
+        if(JUGADOR.salud <= 0) {
             assert(strlen(JUGADOR_MUERTO_NOMBRE) <= JUGADOR_MENSAJE_SIZE);
-            strcpy(jugadores[JUGADOR].nombre, JUGADOR_MUERTO_NOMBRE);
+            strcpy(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE);
             print_gameover();
             opcion = MENU_SALIR_OPCION;
         }
@@ -287,18 +354,18 @@ int main() {
         switch (opcion) {
             case MENU_ESPADA_OPCION:
                 assert(MENU_ESPADA_OPCION != INVALID_KEY);
-                ataque_espada(&jugadores[JUGADOR], &jugadores[MOUNSTRO]);
+                ataque_espada(&JUGADOR, &MOUNSTRO);
                 cooldown = cooldown == -1?-1:cooldown-1;
                 break;
             case MENU_MAZA_OPCION:
                 assert(MENU_MAZA_OPCION != INVALID_KEY);
-                int new_cooldown = ataque_maza(&jugadores[JUGADOR], &jugadores[MOUNSTRO]);
+                int new_cooldown = ataque_maza(&JUGADOR, &MOUNSTRO);
                 cooldown = cooldown == -1? new_cooldown:cooldown-1;
                 break;
             case MENU_FLECHA_OPCION:
                 assert(MENU_FLECHA_OPCION != INVALID_KEY);
                 cooldown = cooldown == -1?-1:cooldown-1;
-                ataque_flecha(&jugadores[JUGADOR], &jugadores[MOUNSTRO]);
+                ataque_flecha(&JUGADOR, &MOUNSTRO);
                 break;
             case MENU_SALIR_OPCION:
                 assert(MENU_SALIR_OPCION != INVALID_KEY);
@@ -314,11 +381,39 @@ int main() {
 
         /* si ingresó una opción correcta que no sea salir del juego */
         if (opcion != INVALID_KEY && !salir) {
+            char *mounstro_mensaje = malloc(LINE_MAX);
+            if (!mounstro_mensaje)
+                err_exit("malloc (mounstro mensaje)");
+            char *jugador_mensaje =  malloc(LINE_MAX);
+            if (!jugador_mensaje)
+                err_exit("malloc (jugador_mensaje)");
+
+            formatear_mensaje(&MOUNSTRO, mounstro_mensaje);
+            formatear_mensaje(&JUGADOR, jugador_mensaje);
+
             /* imprimir el último mensaje del jugador */
-            printf("\n%s%s: %s%s\n", AZUL, jugadores[JUGADOR].nombre, jugadores[JUGADOR].mensaje, NORMAL);
+            printf("\n%s%s%s", AZUL, jugador_mensaje, NORMAL);
+
+            /* interpolar el nombre del jugador en el nombre del archivo de bitácora local */
+            char *bitacora_local_file = malloc(FILENAME_MAX);
+            if (!bitacora_local_file)
+                err_exit("malloc (bitacora_local_file)");
+
+            sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
+
+            /* loggear en las bitácoras */
+            log_bitacora(bitacora_local_file, mounstro_mensaje);
+            log_bitacora(bitacora_local_file, jugador_mensaje);
+            log_bitacora(BITACORA_GLOBAL_FILE, mounstro_mensaje);
+            log_bitacora(BITACORA_GLOBAL_FILE, jugador_mensaje);
+
+            /* devolver la memoria */
+            free(mounstro_mensaje);
+            free(jugador_mensaje);
+            free(bitacora_local_file);
 
             /* comprobar si el mounstro sigue vivo */
-            if (jugadores[MOUNSTRO].salud <= 0) {
+            if (MOUNSTRO.salud <= 0) {
                 salir = true;
                 print_you_win();
             }
@@ -326,7 +421,7 @@ int main() {
             /* comprobar el cooldown de energía */
             if (cooldown == 0) {
                 cooldown = -1;
-                jugadores[JUGADOR].energia = JUGADOR_ENERGIA_MAX;
+                JUGADOR.energia = JUGADOR_ENERGIA_MAX;
             }
 
             /* devolver el control al servidor */

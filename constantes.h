@@ -1,6 +1,7 @@
 /* Configuración */
-#define MOUNSTRO                      0  /* profesor */
-#define JUGADOR                       5  /* alu-136148 */
+#define MOUNSTRO_POS                  0  /* profesor */
+#define JUGADOR_POS                   5  /* alu-136148 */
+#define JUGADOR_ALU                   136148
 #define JUGADORES_CANT                16
 #define JUGADOR_NOMBRE_SIZE           15
 #define JUGADOR_MENSAJE_SIZE          100
@@ -49,24 +50,29 @@
 #define JUGADOR_SALUD_MAX             100
 #define JUGADOR_ENERGIA_MAX           25
 #define JUGADOR_ENERGIA_COOLDOWN      3
+#define JUGADOR_MENSAJE_FORMATO       "(%s) %s\n"
 
 /* Ataques */
 #define ATAQUE_ESPADA_ATACO           1
-#define ATAQUE_ESPADA_MENSAJE         "Ataqué con la espada! Daño infligido: "
+#define ATAQUE_ESPADA_MENSAJE         "Ataqué con la espada! D%i = %i, Salud = %i"
 #define ATAQUE_ESPADA_DADO            6
 
 #define ATAQUE_MAZA_ATACO             2
-#define ATAQUE_MAZA_MENSAJE           "Ataqué con la maza! Daño infligido: "
-#define ATAQUE_MAZA_FALLIDO_MENSAJE   "Fallé el ataque con la maza"
+#define ATAQUE_MAZA_MENSAJE           "Ataqué con la maza! D%i = %i, Energía: %i, Salud = %i"
+#define ATAQUE_MAZA_FALLIDO_MENSAJE   "Fallé el ataque con la maza! D%i = %i, Energía: %i, Salud: %i"
 #define ATAQUE_MAZA_DADO              20
 
 #define ATAQUE_FLECHA_ATACO           3
-#define ATAQUE_FLECHA_MENSAJE         "Ataqué con el arco y dí al blanco! Daño infligido: "
-#define ATAQUE_FLECHA_FALLIDO_MENSAJE "Fallé el ataque con el arco"
+#define ATAQUE_FLECHA_MENSAJE         "Ataqué con el arco y dí al blanco! D%i = %i, Daño: %i, Salud: %i"
+#define ATAQUE_FLECHA_FALLIDO_MENSAJE "Fallé el ataque con el arco! D%i = %i, Salud: %i"
 #define ATAQUE_FLECHA_DADO            5
 #define ATAQUE_FLECHA_BLANCO          3
 #define ATAQUE_FLECHA_PODER           10
 #define ATAQUE_FLECHA_ENERGIA_BONUS   10
+
+/* Bitácora */
+#define BITACORA_LOCAL_FILE          "./guerrero-%s.csv"
+#define BITACORA_GLOBAL_FILE         "/tmp/guerra-soyd.csv"
 
 /* Colores */
 #define NORMAL                        "\x1B[0m"
