@@ -33,7 +33,6 @@ struct jugador {
 /* variables globales para los semáforos y la memoria compartida */
 sem_t *sem_user;
 sem_t *sem_server;
-int fd;
 struct jugador *jugadores;
 bool critical_section;
 
@@ -58,9 +57,6 @@ void destruir() {
 
     if(munmap(jugadores, SIZEOF_JUGADORES) == -1)
         perror("munmap (jugadores)");
-
-    if (close(fd) == -1)
-        perror("close (fd)");
 }
 
 
@@ -284,6 +280,7 @@ int main() {
     bool salir;
     int opcion;
     int cooldown;
+    int fd;
 
     /* comprobar que las constantes no sean inválidas */
     assert(JUGADORES_CANT > 1);
@@ -306,7 +303,7 @@ int main() {
     signal(SIGTSTP, handle_finalizar_anormalmente);
 
     /* agregar al espacio de direccionamiento del programa la memoria compartida */
-    fd = shm_open(SHM_FILE, O_EXCL | O_RDWR, 0600);
+    fd = shm_open(SHM_FILE, O_RDWR, 0600);
     if (fd == -1)
         err_exit("shm_open");
 
@@ -318,6 +315,9 @@ int main() {
         fd,
         0
     );
+
+    if (close(fd) == -1)
+        perror("close (fd)");
 
     if (jugadores == MAP_FAILED)
         err_exit("mmap");
