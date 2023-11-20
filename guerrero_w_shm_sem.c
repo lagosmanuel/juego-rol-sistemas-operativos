@@ -17,7 +17,7 @@
 #include "constantes.h"
 
 /* macros de utilidad */
-#define SIZEOF_JUGADORES sizeof(jugadores) * JUGADORES_CANT
+#define SIZEOF_JUGADORES sizeof(struct jugador) * JUGADORES_CANT
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define JUGADOR jugadores[JUGADOR_POS]
 #define MOUNSTRO jugadores[MOUNSTRO_POS]
