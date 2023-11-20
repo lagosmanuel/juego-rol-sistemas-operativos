@@ -50,16 +50,16 @@ void destruir() {
         critical_section = false;
     }
 
-    if (sem_close(sem_user) < 0)
+    if (sem_close(sem_user) == -1)
         perror("sem_close (sem_user)");
 
-    if (sem_close(sem_server) < 0)
+    if (sem_close(sem_server) == -1)
         perror("sem_close (sem_server)");
 
-    if(munmap(jugadores, SIZEOF_JUGADORES))
+    if(munmap(jugadores, SIZEOF_JUGADORES) == -1)
         perror("munmap (jugadores)");
 
-    if (close(fd))
+    if (close(fd) == -1)
         perror("close (fd)");
 }
 
