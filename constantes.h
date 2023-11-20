@@ -9,6 +9,7 @@
 #define SEM_SERVER_FILE               "/soyd_semaforo_server_alu_136148"
 #define SEM_USER_FILE                 "/soyd_semaforo_user_alu_136148"
 #define INVALID_KEY                   -1
+#define WCHAR_NULL_TERMINATED         L'\0'
 
 /* Estado */
 #define ESTADO_TITULO                 "==== Estado posterior al ataque del Mounstro ===="

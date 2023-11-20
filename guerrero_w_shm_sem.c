@@ -71,56 +71,52 @@ void err_exit(char *mensaje) {
 }
 
 /*
- * llena una barra de longitud barra_max wchar_t (widechar) caracteres en función de la relación entre
- * un valor entero y su máximo, usando los wchar_t ingresaos. valor_max debe ser mayor a cero.
+ * llena una barra de longitud barra_len-1 wchar_t (widechar) caracteres en función de la relación entre
+ * un valor entero y su máximo, usando los wchar_t ingresados.
+ * barra_len tiene un caracter de más para el caracter de terminación.
+ * valor_max debe ser mayor a cero.
  */
-void llenar_barra(int valor, int valor_max, wchar_t *barra, int barra_max, wchar_t ok_char, wchar_t nok_char) {
+void llenar_barra(int valor, int valor_max, wchar_t *barra, int barra_len, wchar_t ok_char, wchar_t nok_char) {
     assert(valor_max > 0);
-    int porcentaje = (int) round((double) valor / (double) valor_max * barra_max);
+    int porcentaje = (int) round((double) valor / (double) valor_max * (barra_len-1));
 
-    for (int i = 0; i < barra_max; i++) {
+    for (int i = 0; i < barra_len-1; ++i) {
         barra[i] = i < porcentaje? ok_char:nok_char;
     }
+
+    /* insertar caracter de terminación */
+    barra[barra_len-1] = WCHAR_NULL_TERMINATED;
 }
 
 void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
-    wchar_t *barra_salud = calloc(MENU_BARRA_SALUD_MAX+1, sizeof(wchar_t));
-    if (!barra_salud)
-        err_exit("malloc (barra_salud)");
+    wchar_t barra_salud[MENU_BARRA_SALUD_MAX+1] = {0};
+    wchar_t barra_energia[MENU_BARRA_ENERGIA_MAX+1] = {0};
+    wchar_t barra_cooldown[MENU_BARRA_COOLDOWN_MAX+1] = {0};
 
     llenar_barra(
         jgdor->salud,
         JUGADOR_SALUD_MAX,
         barra_salud,
-        MENU_BARRA_SALUD_MAX,
+        sizeof(barra_salud)/sizeof(wchar_t),
         MENU_BARRA_SALUD_OK_CHAR,
         MENU_BARRA_SALUD_NOK_CHAR
     );
-
-    wchar_t *barra_energia = calloc(MENU_BARRA_ENERGIA_MAX+1, sizeof(wchar_t));
-    if (!barra_energia)
-        err_exit("malloc (barra_energía)");
 
     llenar_barra(
             jgdor->energia,
             JUGADOR_ENERGIA_MAX,
             barra_energia,
-            MENU_BARRA_ENERGIA_MAX,
+            sizeof(barra_energia)/sizeof(wchar_t),
             MENU_BARRA_ENERGIA_OK_CHAR,
             MENU_BARRA_ENERGIA_NOK_CHAR
     );
 
-    wchar_t *barra_cooldown;
     if (cooldown > 0) {
-        barra_cooldown = (wchar_t *) calloc(MENU_BARRA_COOLDOWN_MAX+1, sizeof(wchar_t));
-        if (!barra_cooldown)
-            err_exit("malloc (barra_cooldown)");
-
         llenar_barra(
                 cooldown,
                 JUGADOR_ENERGIA_COOLDOWN,
                 barra_cooldown,
-                MENU_BARRA_COOLDOWN_MAX,
+                sizeof(barra_cooldown)/sizeof(wchar_t),
                 MENU_BARRA_COOLDOWN_OK_CHAR,
                 MENU_BARRA_COOLDOWN_NOK_CHAR
         );
@@ -140,11 +136,6 @@ void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
     printf("%s%i. %s%s\n", VERDE, MENU_SALIR_OPCION, NORMAL, MENU_SALIR_TEXTO);
 
     printf("\n\n%s", MENU_INGRESAR_TEXTO);
-
-    free(barra_salud);
-    free(barra_energia);
-    if (cooldown > 0)
-        free(barra_cooldown);
 }
 
 void print_you_win() {
@@ -280,6 +271,7 @@ int main() {
     bool salir;
     int opcion;
     int cooldown;
+    int new_cooldown;
     int fd;
 
     /* comprobar que las constantes no sean inválidas */
@@ -359,7 +351,7 @@ int main() {
                 break;
             case MENU_MAZA_OPCION:
                 assert(MENU_MAZA_OPCION != INVALID_KEY);
-                int new_cooldown = ataque_maza(&JUGADOR, &MOUNSTRO);
+                new_cooldown = ataque_maza(&JUGADOR, &MOUNSTRO);
                 cooldown = cooldown == -1? new_cooldown:cooldown-1;
                 break;
             case MENU_FLECHA_OPCION:
@@ -381,12 +373,8 @@ int main() {
 
         /* si ingresó una opción correcta que no sea salir del juego */
         if (opcion != INVALID_KEY && !salir) {
-            char *mounstro_mensaje = malloc(LINE_MAX);
-            if (!mounstro_mensaje)
-                err_exit("malloc (mounstro mensaje)");
-            char *jugador_mensaje =  malloc(LINE_MAX);
-            if (!jugador_mensaje)
-                err_exit("malloc (jugador_mensaje)");
+            char mounstro_mensaje[LINE_MAX] = {0};
+            char jugador_mensaje[LINE_MAX] = {0};
 
             formatear_mensaje(&MOUNSTRO, mounstro_mensaje);
             formatear_mensaje(&JUGADOR, jugador_mensaje);
@@ -395,10 +383,7 @@ int main() {
             printf("\n%s%s%s", AZUL, jugador_mensaje, NORMAL);
 
             /* interpolar el nombre del jugador en el nombre del archivo de bitácora local */
-            char *bitacora_local_file = malloc(FILENAME_MAX);
-            if (!bitacora_local_file)
-                err_exit("malloc (bitacora_local_file)");
-
+            char bitacora_local_file[FILENAME_MAX] = {0};
             sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
 
             /* loggear en las bitácoras */
@@ -406,11 +391,6 @@ int main() {
             log_bitacora(bitacora_local_file, jugador_mensaje);
             log_bitacora(BITACORA_GLOBAL_FILE, mounstro_mensaje);
             log_bitacora(BITACORA_GLOBAL_FILE, jugador_mensaje);
-
-            /* devolver la memoria */
-            free(mounstro_mensaje);
-            free(jugador_mensaje);
-            free(bitacora_local_file);
 
             /* comprobar si el mounstro sigue vivo */
             if (MOUNSTRO.salud <= 0) {
