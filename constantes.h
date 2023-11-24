@@ -5,6 +5,7 @@
 #define JUGADORES_CANT                16
 #define JUGADOR_NOMBRE_SIZE           15
 #define JUGADOR_MENSAJE_SIZE          100
+#define JUGADOR_NICK                  "mAnu"
 #define SHM_FILE                      "/soyd_memoria_compartida_alu_136148"
 #define SEM_SERVER_FILE               "/soyd_semaforo_server_alu_136148"
 #define SEM_USER_FILE                 "/soyd_semaforo_user_alu_136148"
@@ -20,6 +21,7 @@
 #define ESTADO_MSJ_MOUNSTRO           "Msj. Mounstro"
 
 /* Menu */
+#define MENU_PRINT_DELAY              0 /* tiempo en segundos que tarda en volver a imprimir la pantalla */
 #define MENU_TITULO                   "============ Menu selección de ataque ==========="
 #define MENU_ESPADA_OPCION            1
 #define MENU_ESPADA_TEXTO             "Ataque con espada"
@@ -48,32 +50,41 @@
 
 /* Jugador */
 #define JUGADOR_MUERTO_NOMBRE         "fueradejuego"
+#define JUGADOR_MUERTO_MSJ            "Quedé fuera de juego"
 #define JUGADOR_SALUD_MAX             100
 #define JUGADOR_ENERGIA_MAX           25
 #define JUGADOR_ENERGIA_COOLDOWN      3
-#define JUGADOR_MENSAJE_FORMATO       "(%s) %s\n"
 
 /* Ataques */
+#define ATAQUE_ESPADA_NOMBRE          "Espada"
 #define ATAQUE_ESPADA_ATACO           1
-#define ATAQUE_ESPADA_MENSAJE         "Ataqué con la espada! D%i = %i, Salud = %i"
+#define ATAQUE_ESPADA_FORMATO         "%s(%s) %s, D%i = %i, Salud = %i%s"
+#define ATAQUE_ESPADA_MENSAJE         "Ataqué con la espada!"
 #define ATAQUE_ESPADA_DADO            6
 
+#define ATAQUE_MAZA_NOMBRE            "Maza"
 #define ATAQUE_MAZA_ATACO             2
-#define ATAQUE_MAZA_MENSAJE           "Ataqué con la maza! D%i = %i, Energía: %i, Salud = %i"
-#define ATAQUE_MAZA_FALLIDO_MENSAJE   "Fallé el ataque con la maza! D%i = %i, Energía: %i, Salud: %i"
+#define ATAQUE_MAZA_FORMATO           "%s(%s) %s, D%i = %i, Salud = %i, Energía = %i%s"
+#define ATAQUE_MAZA_MENSAJE           "Ataqué con la maza!"
+#define ATAQUE_MAZA_FALLIDO_MENSAJE   "Fallé el ataque con la maza!"
 #define ATAQUE_MAZA_DADO              20
 
+#define ATAQUE_FLECHA_NOMBRE          "Arco"
 #define ATAQUE_FLECHA_ATACO           3
-#define ATAQUE_FLECHA_MENSAJE         "Ataqué con el arco y dí al blanco! D%i = %i, Daño: %i, Salud: %i"
-#define ATAQUE_FLECHA_FALLIDO_MENSAJE "Fallé el ataque con el arco! D%i = %i, Salud: %i"
+#define ATAQUE_FLECHA_FORMATO         "%s(%s) %s, D%i = %i, Daño: %i, Salud: %i%s"
+#define ATAQUE_FLECHA_MENSAJE         "Ataqué con el arco y dí al blanco!"
+#define ATAQUE_FLECHA_FALLIDO_MENSAJE "Fallé el ataque con el arco!"
 #define ATAQUE_FLECHA_DADO            5
 #define ATAQUE_FLECHA_BLANCO          3
 #define ATAQUE_FLECHA_PODER           10
 #define ATAQUE_FLECHA_ENERGIA_BONUS   10
 
+#define ATAQUE_NULO_NOMBRE            "nulo"
+
 /* Bitácora */
 #define BITACORA_LOCAL_FILE          "./guerrero-%s.csv"
 #define BITACORA_GLOBAL_FILE         "/tmp/guerra-soyd.csv"
+#define BITACORA_MENSAJE_FORMATO      "%s, %i, %i, %s, D%i=%i, %s"
 
 /* Colores */
 #define NORMAL                        "\x1B[0m"

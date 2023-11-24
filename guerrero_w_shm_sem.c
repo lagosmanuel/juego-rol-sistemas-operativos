@@ -148,17 +148,56 @@ void print_gameover() {
     printf("\n%s%s%s\n", ROJO, MENU_JUGADOR_MUERTO_MSJ, NORMAL);
 }
 
+void log_ataque(char *ataque, int caras, int dado) {
+    /* obtener el nombre del arcivo con el formato guerrero-(nombre).csv */
+    char bitacora_local_file[NAME_MAX] = {0};
+    sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
+
+    /* formatear el mensaje */
+    char mensaje_formateado[LINE_MAX] = {0};
+    sprintf(
+        mensaje_formateado,
+        BITACORA_MENSAJE_FORMATO,
+        JUGADOR.nombre,
+        JUGADOR.salud,
+        JUGADOR.energia,
+        ataque,
+        caras,
+        dado,
+        JUGADOR.mensaje
+    );
+
+    /* escribir en las dos bitácoras */
+    char comando[LINE_MAX * 2] = {0};
+    sprintf(comando, "echo '%s' >> '%s'", mensaje_formateado, bitacora_local_file);
+    system(comando);
+    sprintf(comando, "echo '%s' >> '%s'", mensaje_formateado, BITACORA_GLOBAL_FILE);
+    system(comando);
+}
+
 void ataque_espada(struct jugador *atacante, struct jugador *enemigo) {
     int ataque = lanzar_dado(ATAQUE_ESPADA_DADO);
     enemigo->salud -= ataque;
     atacante->ataco = ATAQUE_ESPADA_ATACO;
-    assert(strlen(ATAQUE_ESPADA_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-    sprintf(
-        atacante->mensaje,
+    strcpy(atacante->mensaje, ATAQUE_ESPADA_MENSAJE);
+
+    /* imprimir el ataque del jugador */
+    printf(
+        ATAQUE_ESPADA_FORMATO,
+        AZUL,
+        atacante->nombre,
         ATAQUE_ESPADA_MENSAJE,
         ATAQUE_ESPADA_DADO,
         ataque,
-        atacante->salud
+        atacante->salud,
+        NORMAL
+    );
+
+    /* loggear en la bitácora */
+    log_ataque(
+        ATAQUE_ESPADA_NOMBRE,
+        ATAQUE_ESPADA_DADO,
+        ataque
     );
 }
 
@@ -173,39 +212,44 @@ int ataque_maza(struct jugador *atacante, struct jugador *enemigo) {
     if (atacante->energia >= ataque) {
         enemigo->salud -= ataque;
         atacante->energia -= ataque;
-        assert(strlen(ATAQUE_MAZA_MENSAJE) + ataque <= JUGADOR_MENSAJE_SIZE);
-        sprintf(
-            atacante->mensaje,
-            ATAQUE_MAZA_MENSAJE,
-            ATAQUE_MAZA_DADO,
-            ataque,
-            atacante->energia,
-            atacante->salud
-        );
+        strcpy(atacante->mensaje, ATAQUE_MAZA_MENSAJE);
     } else {
         atacante->energia = 0;
-        assert(strlen(ATAQUE_MAZA_FALLIDO_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-        sprintf(
-            atacante->mensaje,
-            ATAQUE_MAZA_FALLIDO_MENSAJE,
-            ATAQUE_MAZA_DADO,
-            ataque,
-            atacante->energia,
-            atacante->salud
-        );
+        strcpy(atacante->mensaje, ATAQUE_MAZA_FALLIDO_MENSAJE);
     }
+
+    /* imprimir el ataque del jugador */
+    printf(
+        ATAQUE_MAZA_FORMATO,
+        AZUL,
+        atacante->nombre,
+        atacante->mensaje,
+        ATAQUE_MAZA_DADO,
+        ataque,
+        atacante->salud,
+        atacante->energia,
+        NORMAL
+    );
 
     if (atacante->energia == 0) {
         cooldown = JUGADOR_ENERGIA_COOLDOWN;
     }
 
     atacante->ataco = ATAQUE_MAZA_ATACO;
+
+    /* loggear en la bitácora */
+    log_ataque(
+        ATAQUE_MAZA_NOMBRE,
+        ATAQUE_MAZA_DADO,
+        ataque
+    );
+
     return cooldown;
 }
 
 void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
     int flecha = lanzar_dado(ATAQUE_FLECHA_DADO);
-    int ataque;
+    int ataque = 0;
     int energia;
 
     if (flecha == ATAQUE_FLECHA_BLANCO) {
@@ -213,27 +257,32 @@ void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
         atacante->energia = MIN(energia + ATAQUE_FLECHA_PODER, JUGADOR_ENERGIA_MAX);
         ataque = ATAQUE_FLECHA_PODER;
         enemigo->salud -= ataque;
-        assert(strlen(ATAQUE_FLECHA_MENSAJE) + ataque <= JUGADOR_MENSAJE_SIZE);
-        sprintf(
-            atacante->mensaje,
-            ATAQUE_FLECHA_MENSAJE,
-            ATAQUE_FLECHA_DADO,
-            flecha,
-            ataque,
-            atacante->salud
-        );
+        strcpy(atacante->mensaje, ATAQUE_FLECHA_MENSAJE);
     } else {
-        assert(strlen(ATAQUE_FLECHA_FALLIDO_MENSAJE) <= JUGADOR_MENSAJE_SIZE);
-        sprintf(
-            atacante->mensaje,
-            ATAQUE_FLECHA_FALLIDO_MENSAJE,
-            ATAQUE_FLECHA_DADO,
-            flecha,
-            atacante->salud
-        );
+        strcpy(atacante->mensaje, ATAQUE_FLECHA_FALLIDO_MENSAJE);
     }
 
+    /* imprimir el ataque del jugador */
+    printf(
+        ATAQUE_FLECHA_FORMATO,
+        AZUL,
+        atacante->nombre,
+        atacante->mensaje,
+        ATAQUE_FLECHA_DADO,
+        flecha,
+        ataque,
+        atacante->salud,
+        NORMAL
+    );
+
     atacante->ataco = ATAQUE_FLECHA_ATACO;
+
+    /* loggear en la bitácora */
+    log_ataque(
+        ATAQUE_FLECHA_NOMBRE,
+        ATAQUE_FLECHA_DADO,
+        flecha
+    );
 }
 
 void finalizar_con_exito() {
@@ -246,25 +295,6 @@ void handle_finalizar_anormalmente() {
     if (!critical_section) {
         finalizar_con_exito();
     }
-}
-
-void log_bitacora(char *file_name, char *msg) {
-    FILE *file = fopen(file_name, "a+"); /* abrir el archivo para append */
-    if (!file)
-        err_exit("fopen (log_bitácora)");
-    fprintf(file, msg);
-    if (fclose(file) == EOF)
-        err_exit("fclose (log_bitácora)");
-}
-
-/* devuelve */
-void formatear_mensaje(struct jugador *jgdor, char *mensaje) {
-    sprintf(
-        mensaje,
-        JUGADOR_MENSAJE_FORMATO,
-        jgdor->nombre,
-        jgdor->mensaje
-    );
 }
 
 int main() {
@@ -327,7 +357,12 @@ int main() {
     critical_section = false; /* entrar en la sección crítica */
     cooldown = -1;
 
+    /* cambiar el nombre de usuario si no está muerto*/
+    if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0)
+        strcpy(JUGADOR.nombre, JUGADOR_NICK);
+
     while (!salir) {
+        system("clear"); /* limpiar la pantalla */
         print_menu(&JUGADOR, &MOUNSTRO, cooldown);
         scanf("%i", &opcion);
 
@@ -338,7 +373,15 @@ int main() {
         /* gameover */
         if(JUGADOR.salud <= 0) {
             assert(strlen(JUGADOR_MUERTO_NOMBRE) <= JUGADOR_MENSAJE_SIZE);
-            strcpy(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE);
+
+            /* si no estaba muerto antes */
+            if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0) {
+                strcpy(JUGADOR.mensaje, JUGADOR_MUERTO_MSJ);
+                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0);
+                /* setear nombre en fuera de juego (debe ejecutarse despues del log_ataque) */
+                strcpy(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE);
+            }
+
             print_gameover();
             opcion = MENU_SALIR_OPCION;
         }
@@ -373,24 +416,6 @@ int main() {
 
         /* si ingresó una opción correcta que no sea salir del juego */
         if (opcion != INVALID_KEY && !salir) {
-            char mounstro_mensaje[LINE_MAX] = {0};
-            char jugador_mensaje[LINE_MAX] = {0};
-
-            formatear_mensaje(&MOUNSTRO, mounstro_mensaje);
-            formatear_mensaje(&JUGADOR, jugador_mensaje);
-
-            /* imprimir el último mensaje del jugador */
-            printf("\n%s%s%s", AZUL, jugador_mensaje, NORMAL);
-
-            /* interpolar el nombre del jugador en el nombre del archivo de bitácora local */
-            char bitacora_local_file[FILENAME_MAX] = {0};
-            sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
-
-            /* loggear en las bitácoras */
-            log_bitacora(bitacora_local_file, mounstro_mensaje);
-            log_bitacora(bitacora_local_file, jugador_mensaje);
-            log_bitacora(BITACORA_GLOBAL_FILE, mounstro_mensaje);
-            log_bitacora(BITACORA_GLOBAL_FILE, jugador_mensaje);
 
             /* comprobar si el mounstro sigue vivo */
             if (MOUNSTRO.salud <= 0) {
@@ -404,8 +429,8 @@ int main() {
                 JUGADOR.energia = JUGADOR_ENERGIA_MAX;
             }
 
-            /* devolver el control al servidor */
-            sem_post(sem_server);
+            sem_post(sem_server); /* devolver el control al servidor */
+            sleep(MENU_PRINT_DELAY); /* esperar respuesta del servidor para volver a imprimir la pantalla*/
         }
 
         /* salir de la sección crítica */
