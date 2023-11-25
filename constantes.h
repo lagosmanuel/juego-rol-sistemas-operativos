@@ -11,6 +11,7 @@
 #define SEM_USER_FILE                 "/soyd_semaforo_user_alu_136148"
 #define INVALID_KEY                   -1
 #define WCHAR_NULL_TERMINATED         L'\0'
+#define DEBUG                         0
 
 /* Estado */
 #define ESTADO_TITULO                 "==== Estado posterior al ataque del Mounstro ===="
@@ -51,6 +52,7 @@
 /* Jugador */
 #define JUGADOR_MUERTO_NOMBRE         "fueradejuego"
 #define JUGADOR_MUERTO_MSJ            "Quedé fuera de juego"
+#define JUGADOR_GANO_MSJ              "El mounstro fue vencido! Se reinicia el juego"
 #define JUGADOR_SALUD_MAX             100
 #define JUGADOR_ENERGIA_MAX           25
 #define JUGADOR_ENERGIA_COOLDOWN      3
@@ -58,20 +60,20 @@
 /* Ataques */
 #define ATAQUE_ESPADA_NOMBRE          "Espada"
 #define ATAQUE_ESPADA_ATACO           1
-#define ATAQUE_ESPADA_FORMATO         "%s(%s) %s, D%i = %i, Salud = %i%s"
+#define ATAQUE_ESPADA_FORMATO         "%s(%s) %s, D%i = %i, Salud = %i%s\n"
 #define ATAQUE_ESPADA_MENSAJE         "Ataqué con la espada!"
 #define ATAQUE_ESPADA_DADO            6
 
 #define ATAQUE_MAZA_NOMBRE            "Maza"
 #define ATAQUE_MAZA_ATACO             2
-#define ATAQUE_MAZA_FORMATO           "%s(%s) %s, D%i = %i, Salud = %i, Energía = %i%s"
+#define ATAQUE_MAZA_FORMATO           "%s(%s) %s, D%i = %i, Salud = %i, Energía = %i%s\n"
 #define ATAQUE_MAZA_MENSAJE           "Ataqué con la maza!"
 #define ATAQUE_MAZA_FALLIDO_MENSAJE   "Fallé el ataque con la maza!"
 #define ATAQUE_MAZA_DADO              20
 
 #define ATAQUE_FLECHA_NOMBRE          "Arco"
 #define ATAQUE_FLECHA_ATACO           3
-#define ATAQUE_FLECHA_FORMATO         "%s(%s) %s, D%i = %i, Daño: %i, Salud: %i%s"
+#define ATAQUE_FLECHA_FORMATO         "%s(%s) %s, D%i = %i, Daño: %i, Salud: %i%s\n"
 #define ATAQUE_FLECHA_MENSAJE         "Ataqué con el arco y dí al blanco!"
 #define ATAQUE_FLECHA_FALLIDO_MENSAJE "Fallé el ataque con el arco!"
 #define ATAQUE_FLECHA_DADO            5

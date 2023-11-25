@@ -88,6 +88,15 @@ void llenar_barra(int valor, int valor_max, wchar_t *barra, int barra_len, wchar
     barra[barra_len-1] = WCHAR_NULL_TERMINATED;
 }
 
+/* limpiar la pantalla si no está en modo DEBUG*/
+void limpiar_pantalla() {
+    #if !DEBUG && defined(WINDOWS)
+        system("cls");
+    #elif !DEBUG
+        system("clear");
+    #endif
+}
+
 void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
     wchar_t barra_salud[MENU_BARRA_SALUD_MAX+1] = {0};
     wchar_t barra_energia[MENU_BARRA_ENERGIA_MAX+1] = {0};
@@ -148,7 +157,7 @@ void print_gameover() {
     printf("\n%s%s%s\n", ROJO, MENU_JUGADOR_MUERTO_MSJ, NORMAL);
 }
 
-void log_ataque(char *ataque, int caras, int dado) {
+void log_ataque(char *ataque, int caras, int dado, int global) {
     /* obtener el nombre del arcivo con el formato guerrero-(nombre).csv */
     char bitacora_local_file[NAME_MAX] = {0};
     sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
@@ -167,12 +176,15 @@ void log_ataque(char *ataque, int caras, int dado) {
         JUGADOR.mensaje
     );
 
-    /* escribir en las dos bitácoras */
+    /* escribir en las bitácoras */
     char comando[LINE_MAX * 2] = {0};
     sprintf(comando, "echo '%s' >> '%s'", mensaje_formateado, bitacora_local_file);
     system(comando);
-    sprintf(comando, "echo '%s' >> '%s'", mensaje_formateado, BITACORA_GLOBAL_FILE);
-    system(comando);
+
+    if (global) {
+        sprintf(comando, "echo '%s' >> '%s'", mensaje_formateado, BITACORA_GLOBAL_FILE);
+        system(comando);
+    }
 }
 
 void ataque_espada(struct jugador *atacante, struct jugador *enemigo) {
@@ -197,7 +209,8 @@ void ataque_espada(struct jugador *atacante, struct jugador *enemigo) {
     log_ataque(
         ATAQUE_ESPADA_NOMBRE,
         ATAQUE_ESPADA_DADO,
-        ataque
+        ataque,
+        1
     );
 }
 
@@ -241,7 +254,8 @@ int ataque_maza(struct jugador *atacante, struct jugador *enemigo) {
     log_ataque(
         ATAQUE_MAZA_NOMBRE,
         ATAQUE_MAZA_DADO,
-        ataque
+        ataque,
+        1
     );
 
     return cooldown;
@@ -281,7 +295,8 @@ void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
     log_ataque(
         ATAQUE_FLECHA_NOMBRE,
         ATAQUE_FLECHA_DADO,
-        flecha
+        flecha,
+        1
     );
 }
 
@@ -361,10 +376,12 @@ int main() {
     if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0)
         strcpy(JUGADOR.nombre, JUGADOR_NICK);
 
+    limpiar_pantalla();
+
     while (!salir) {
-        system("clear"); /* limpiar la pantalla */
         print_menu(&JUGADOR, &MOUNSTRO, cooldown);
         scanf("%i", &opcion);
+        limpiar_pantalla();
 
         /* esperar por confirmación del servidor para modificar la memoria compartida */
         sem_wait(sem_user);
@@ -377,11 +394,12 @@ int main() {
             /* si no estaba muerto antes */
             if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0) {
                 strcpy(JUGADOR.mensaje, JUGADOR_MUERTO_MSJ);
-                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0);
+                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0, 1);
                 /* setear nombre en fuera de juego (debe ejecutarse despues del log_ataque) */
                 strcpy(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE);
             }
 
+            limpiar_pantalla();
             print_gameover();
             opcion = MENU_SALIR_OPCION;
         }
@@ -420,6 +438,9 @@ int main() {
             /* comprobar si el mounstro sigue vivo */
             if (MOUNSTRO.salud <= 0) {
                 salir = true;
+                strcpy(JUGADOR.mensaje, JUGADOR_GANO_MSJ);
+                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0, 0);
+                limpiar_pantalla();
                 print_you_win();
             }
 
