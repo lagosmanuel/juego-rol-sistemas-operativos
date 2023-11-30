@@ -157,7 +157,7 @@ void print_gameover() {
     printf("\n%s%s%s\n", ROJO, MENU_JUGADOR_MUERTO_MSJ, NORMAL);
 }
 
-void log_ataque(char *ataque, int caras, int dado, int global) {
+void log_ataque(struct jugador *atacante, char *ataque, int caras, int dado, int global) {
     /* obtener el nombre del arcivo con el formato guerrero-(nombre).csv */
     char bitacora_local_file[NAME_MAX] = {0};
     sprintf(bitacora_local_file, BITACORA_LOCAL_FILE, JUGADOR.nombre);
@@ -167,13 +167,13 @@ void log_ataque(char *ataque, int caras, int dado, int global) {
     sprintf(
         mensaje_formateado,
         BITACORA_MENSAJE_FORMATO,
-        JUGADOR.nombre,
-        JUGADOR.salud,
-        JUGADOR.energia,
+        atacante->nombre,
+        atacante->salud,
+        atacante->energia,
         ataque,
         caras,
         dado,
-        JUGADOR.mensaje
+        atacante->mensaje
     );
 
     /* escribir en las bitácoras */
@@ -207,6 +207,7 @@ void ataque_espada(struct jugador *atacante, struct jugador *enemigo) {
 
     /* loggear en la bitácora */
     log_ataque(
+        &JUGADOR,
         ATAQUE_ESPADA_NOMBRE,
         ATAQUE_ESPADA_DADO,
         ataque,
@@ -252,6 +253,7 @@ int ataque_maza(struct jugador *atacante, struct jugador *enemigo) {
 
     /* loggear en la bitácora */
     log_ataque(
+        &JUGADOR,
         ATAQUE_MAZA_NOMBRE,
         ATAQUE_MAZA_DADO,
         ataque,
@@ -293,6 +295,7 @@ void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
 
     /* loggear en la bitácora */
     log_ataque(
+        &JUGADOR,
         ATAQUE_FLECHA_NOMBRE,
         ATAQUE_FLECHA_DADO,
         flecha,
@@ -302,7 +305,7 @@ void ataque_flecha(struct jugador *atacante, struct jugador *enemigo) {
 
 void finalizar_con_exito() {
     destruir();
-    printf("\n%s%s%s\n", AZUL, EXIT_SUCCESS_MSJ, NORMAL);
+    printf("%s%s%s\n", AZUL, EXIT_SUCCESS_MSJ, NORMAL);
     exit(EXIT_SUCCESS);
 }
 
@@ -372,7 +375,7 @@ int main() {
     critical_section = false; /* entrar en la sección crítica */
     cooldown = -1;
 
-    /* cambiar el nombre de usuario si no está muerto*/
+    /* cambiar el nombre de usuario si no está muerto */
     if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0)
         strcpy(JUGADOR.nombre, JUGADOR_NICK);
 
@@ -394,7 +397,7 @@ int main() {
             /* si no estaba muerto antes */
             if (strcmp(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE) != 0) {
                 strcpy(JUGADOR.mensaje, JUGADOR_MUERTO_MSJ);
-                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0, 1);
+                log_ataque(&JUGADOR, ATAQUE_NULO_NOMBRE, 0, 0, 1);
                 /* setear nombre en fuera de juego (debe ejecutarse despues del log_ataque) */
                 strcpy(JUGADOR.nombre, JUGADOR_MUERTO_NOMBRE);
             }
@@ -407,16 +410,19 @@ int main() {
         switch (opcion) {
             case MENU_ESPADA_OPCION:
                 assert(MENU_ESPADA_OPCION != INVALID_KEY);
+                log_ataque(&MOUNSTRO, ATAQUE_NULO_NOMBRE, 0, 0, 0);
                 ataque_espada(&JUGADOR, &MOUNSTRO);
                 cooldown = cooldown == -1?-1:cooldown-1;
                 break;
             case MENU_MAZA_OPCION:
                 assert(MENU_MAZA_OPCION != INVALID_KEY);
+                log_ataque(&MOUNSTRO, ATAQUE_NULO_NOMBRE, 0, 0, 0);
                 new_cooldown = ataque_maza(&JUGADOR, &MOUNSTRO);
                 cooldown = cooldown == -1? new_cooldown:cooldown-1;
                 break;
             case MENU_FLECHA_OPCION:
                 assert(MENU_FLECHA_OPCION != INVALID_KEY);
+                log_ataque(&MOUNSTRO, ATAQUE_NULO_NOMBRE, 0, 0, 0);
                 cooldown = cooldown == -1?-1:cooldown-1;
                 ataque_flecha(&JUGADOR, &MOUNSTRO);
                 break;
@@ -426,7 +432,7 @@ int main() {
                 sem_post(sem_user);
                 break;
             default:
-                printf("\n%s%s%s\n", ROJO, MENU_OPCION_INCORRECTA_MSJ, NORMAL);
+                printf("%s%s%s\n", ROJO, MENU_OPCION_INCORRECTA_MSJ, NORMAL);
                 sem_post(sem_user);
                 opcion = INVALID_KEY;
                 break;
@@ -439,7 +445,7 @@ int main() {
             if (MOUNSTRO.salud <= 0) {
                 salir = true;
                 strcpy(JUGADOR.mensaje, JUGADOR_GANO_MSJ);
-                log_ataque(ATAQUE_NULO_NOMBRE, 0, 0, 0);
+                log_ataque(&JUGADOR, ATAQUE_NULO_NOMBRE, 0, 0, 0);
                 limpiar_pantalla();
                 print_you_win();
             }
