@@ -55,7 +55,7 @@ void destruir() {
     if (sem_close(sem_server) == -1)
         perror("sem_close (sem_server)");
 
-    if(munmap(jugadores, SIZEOF_JUGADORES) == -1)
+    if (munmap(jugadores, SIZEOF_JUGADORES) == -1)
         perror("munmap (jugadores)");
 }
 
@@ -112,22 +112,22 @@ void print_menu(struct jugador *jgdor, struct jugador *mounstro, int cooldown) {
     );
 
     llenar_barra(
-            jgdor->energia,
-            JUGADOR_ENERGIA_MAX,
-            barra_energia,
-            sizeof(barra_energia)/sizeof(wchar_t),
-            MENU_BARRA_ENERGIA_OK_CHAR,
-            MENU_BARRA_ENERGIA_NOK_CHAR
+        jgdor->energia,
+        JUGADOR_ENERGIA_MAX,
+        barra_energia,
+        sizeof(barra_energia)/sizeof(wchar_t),
+        MENU_BARRA_ENERGIA_OK_CHAR,
+        MENU_BARRA_ENERGIA_NOK_CHAR
     );
 
     if (cooldown > 0) {
         llenar_barra(
-                cooldown,
-                JUGADOR_ENERGIA_COOLDOWN,
-                barra_cooldown,
-                sizeof(barra_cooldown)/sizeof(wchar_t),
-                MENU_BARRA_COOLDOWN_OK_CHAR,
-                MENU_BARRA_COOLDOWN_NOK_CHAR
+            cooldown,
+            JUGADOR_ENERGIA_COOLDOWN,
+            barra_cooldown,
+            sizeof(barra_cooldown)/sizeof(wchar_t),
+            MENU_BARRA_COOLDOWN_OK_CHAR,
+            MENU_BARRA_COOLDOWN_NOK_CHAR
         );
     }
 
@@ -391,7 +391,7 @@ int main() {
         critical_section = true;
 
         /* gameover */
-        if(JUGADOR.salud <= 0) {
+        if (JUGADOR.salud <= 0) {
             assert(strlen(JUGADOR_MUERTO_NOMBRE) <= JUGADOR_MENSAJE_SIZE);
 
             /* si no estaba muerto antes */
