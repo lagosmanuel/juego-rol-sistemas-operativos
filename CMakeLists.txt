@@ -3,6 +3,7 @@ project(juego-rol C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 set(EXEC_FILENAME ${PROJECT_NAME}.bin)
 
 add_executable(
