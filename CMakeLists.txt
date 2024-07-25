@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.27)
-project(Laboratorio4 C)
+project(juego-rol C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall")
+set(EXEC_FILENAME ${PROJECT_NAME}.bin)
 
 add_executable(
-    ${PROJECT_NAME}
+    ${EXEC_FILENAME}
     guerrero_w_shm_sem.c
     constantes.h
 )
 
-target_link_libraries(${PROJECT_NAME} m)
+target_link_libraries(${EXEC_FILENAME} m)
